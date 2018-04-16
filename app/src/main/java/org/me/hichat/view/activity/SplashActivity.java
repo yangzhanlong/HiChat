@@ -1,4 +1,4 @@
-package org.me.hichat.view;
+package org.me.hichat.view.activity;
 
 import android.content.Intent;
 import android.os.Bundle;

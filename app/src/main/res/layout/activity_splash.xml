@@ -5,6 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/pic_background_app"
-    tools:context="org.me.hichat.view.SplashActivity">
+    tools:context="org.me.hichat.view.activity.SplashActivity">
 
 </RelativeLayout>
