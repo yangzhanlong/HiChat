@@ -5,8 +5,10 @@
     <array name="bottombarlabel">
         <item>附近</item>
         <item>直播</item>
-        <item>会话</item>
+        <item>HI聊</item>
         <item>通讯录</item>
-        <item>个人</item>
+        <item>我</item>
     </array>
+
+
 </resources>
