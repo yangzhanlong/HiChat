@@ -2,6 +2,7 @@ package org.me.hichat.view.activity;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.support.design.widget.TextInputEditText;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -54,12 +55,20 @@ public class RegisterActivity extends BaseActivity implements View.OnClickListen
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bt_next:
+                enterPersonalInfoActivity();
                 break;
             case R.id.ib_back:
                 // 显示退出对话框
                 showExitDialog();
                 break;
         }
+    }
+
+    private void enterPersonalInfoActivity() {
+        Intent intent = new Intent(this, PersonalInfoActivity.class);
+        String nickName = etNickName.getText().toString().trim();
+        intent.putExtra("nickName", nickName);
+        startActivity(intent);
     }
 
     private void showExitDialog() {
