@@ -3,12 +3,16 @@ package org.me.hichat.view.activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,6 +33,7 @@ import com.lljjcoder.style.citypickerview.CityPickerView;
 import org.me.hichat.R;
 import org.me.hichat.base.BaseActivity;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Calendar;
 
@@ -36,7 +41,7 @@ import butterknife.ButterKnife;
 
 public class PersonalInfoActivity extends BaseActivity implements View.OnClickListener {
 
-    private static final int PHOTO_REQUEST_URI = 100;
+    private static final int REQUEST_CODE_SELECT_PICTURE = 100;
     private static final int PHOTO_REQUEST_CUT = 200;
 
     private ImageView ivIcon;
@@ -51,14 +56,33 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
     private Calendar calendar;
 
     // 申明对象
-    private CityPickerView mPicker=new CityPickerView();
+    private CityPickerView mPicker = new CityPickerView();
 
     public static final String DATEPICKER_TAG = "datepicker";
     private CityConfig cityConfig;
 
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE"};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 6.0 动态申请权限
+        try {
+            //检测是否有写的权限
+            int permission = ActivityCompat.checkSelfPermission(this,
+                    "android.permission.WRITE_EXTERNAL_STORAGE");
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // 没有写的权限，去申请写的权限，会弹出对话框
+                ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         /**
          * 预先加载仿iOS滚轮实现的全部数据
          */
@@ -195,83 +219,116 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
                     calendar.get(Calendar.DAY_OF_MONTH), false);
             datePickerDialog.setYearRange(1985, 2028);
         }
-        datePickerDialog.show(getSupportFragmentManager() ,DATEPICKER_TAG);
+        datePickerDialog.show(getSupportFragmentManager(), DATEPICKER_TAG);
     }
 
     /**
      * 日期选择回回调
      */
     private class MyDateSetListener implements DatePickerDialog.OnDateSetListener {
-
         @Override
         public void onDateSet(DatePickerDialog datePickerDialog, int year, int month, int day) {
-            tvBirthday.setText(year+"-"+month+"-"+day);
+            tvBirthday.setText(year + "-" + month + "-" + day);
             updateButtonState();
         }
     }
 
-    // 从相册选择图片并返回
+    // 启动系统相册选择图片
     public void getPicFromGallery() {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         intent.setType("image/*");
-        startActivityForResult(intent, PHOTO_REQUEST_URI);
-        updateButtonState();
+        startActivityForResult(intent, REQUEST_CODE_SELECT_PICTURE);
     }
 
-    /*
-    * 调用系统的剪切图片
-    */
-    private Uri uritempFile;
-    private void crop(Uri uri) {
+    /**
+     * 调用系统的剪切图片
+     */
+    private Uri imageUri;
+
+    private Uri crop(Uri uri) {
         // 裁剪图片意图
         Intent intent = new Intent("com.android.camera.action.CROP");
+        //判断是否是AndroidN以及更高的版本
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            //添加这一句表示对目标应用临时授权该Uri所代表的文件
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            //访问相册需要被限制，需要通过FileProvider创建一个content类型的Uri
+            //imageUri = FileProvider.getUriForFile(this, "org.me.hichat.fileProvider", file);
+            // 裁剪整个流程，估计授权一次就好outputUri不需要ContentUri,否则失败
+            //outputUri = FileProvider.getUriForFile(activity, "com.bao.cropimage.fileprovider", new File(crop_image));
+        }
+
+        // 创建文件夹
+        String local_dir = Environment.getExternalStorageDirectory().getAbsolutePath() + "/hichat_pic/";
+        File parentPath = new File(local_dir);
+        if (!parentPath.exists()) {
+            parentPath.mkdirs();
+        }
+
+        // 创建文件
+        String local_file = parentPath.getAbsolutePath() + "/head.jpg";
+        File file = new File(local_file);
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        imageUri = Uri.parse("file://" + file.getAbsolutePath());
+
         intent.setDataAndType(uri, "image/*");
         intent.putExtra("crop", "true");
-        // 裁剪框的比例，1：1
+        //设置宽高比例
         intent.putExtra("aspectX", 1);
         intent.putExtra("aspectY", 1);
-        // 裁剪后输出图片的尺寸大小
+        //设置裁剪图片宽高
         intent.putExtra("outputX", 250);
         intent.putExtra("outputY", 250);
-
-        intent.putExtra("return-data", true);
-        uritempFile=uri;
-        //uritempFile = Uri.parse("file://" + "/" + Environment.getExternalStorageDirectory().getPath() + "/" + "small.jpg");
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, uritempFile);
+        intent.putExtra("scale", true);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
         intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
-        //intent.putExtra("outputFormat", "JPEG");// 图片格式
-        intent.putExtra("noFaceDetection", true);// 取消人脸识别
+        intent.putExtra("noFaceDetection", true);  // 取消人脸识别
+        intent.putExtra("return-data", false);
+
         // 开启一个带有返回值的Activity，请求码为 PHOTO_REQUEST_CUT
         startActivityForResult(intent, PHOTO_REQUEST_CUT);
+        return imageUri;
     }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
-            case PHOTO_REQUEST_URI:
+            case REQUEST_CODE_SELECT_PICTURE:
                 if (data != null) {
                     Uri uri = data.getData();
-                    crop(uri);
+                    if (uri != null) {
+                        imageUri = crop(uri);
+                    }
                 }
                 break;
             case PHOTO_REQUEST_CUT:
-                Bitmap bitmap = null;
-                try {
-                    bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uritempFile));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                //Bitmap bitmap = data.getParcelableExtra("data");
-                if (bitmap != null) {
-                    ivIcon.setImageBitmap(bitmap);
+                if (imageUri != null) {
+                    Bitmap bitmap = null;
+                    try {
+                        bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
+                        if (bitmap != null) {
+                            ivIcon.setImageBitmap(bitmap);
+                            updateButtonState();
+                        }
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
                 }
                 break;
         }
     }
 
+    /**
+     * 更新button状态
+     */
     private void updateButtonState() {
         Drawable drawable = ivIcon.getDrawable();
         String date = tvBirthday.getText().toString();
@@ -279,7 +336,7 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
         boolean male = rbMale.isChecked();
         boolean female = rbFemale.isChecked();
 
-        if (TextUtils.isEmpty(date)
+        if (drawable == null || TextUtils.isEmpty(date)
                 || TextUtils.isEmpty(city)
                 || !(male || female)) {
             btNext.setEnabled(false);

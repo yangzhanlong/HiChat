@@ -42,7 +42,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         tvTitle.setText(title);
     }
 
-    //返回根布局
+    //返回根布局 (给loading布局使用)
     public RelativeLayout getRlRoot(){
         return rlRoot;
     }
