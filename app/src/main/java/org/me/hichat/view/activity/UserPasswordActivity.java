@@ -1,5 +1,6 @@
 package org.me.hichat.view.activity;
 
+import android.os.Environment;
 import android.support.design.widget.TextInputEditText;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -13,11 +14,15 @@ import android.widget.TextView;
 
 import org.me.hichat.R;
 import org.me.hichat.base.BaseActivity;
+import org.me.hichat.model.bean.User;
 import org.me.hichat.utils.MyToast;
 import org.me.hichat.utils.ValidateUtils;
 import org.me.hichat.wrap.SimpleTextWatcher;
 
+import java.io.File;
+
 import butterknife.ButterKnife;
+import cn.bmob.v3.datatype.BmobFile;
 
 public class UserPasswordActivity extends BaseActivity {
 
@@ -126,7 +131,23 @@ public class UserPasswordActivity extends BaseActivity {
         if (is_valid) {
             // 把加载布局添加到根布局
             showLoadingUI();
+            // 保存用户信息到 Bmob
+            saveUserInfoToUser();
+            // 保存 user 到 Bmob 云数据库
         }
+    }
+
+    /**
+     * 保存用户和密码到 user
+     */
+    private void saveUserInfoToUser() {
+        User user = (User) getIntent().getSerializableExtra("user");
+        user.setUserName(etUsername.getText().toString().trim());
+        user.setPassword(etPwd.getText().toString().trim());
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/hichat_pic/head.jpg";
+        File file = new File(file_path);
+        BmobFile bmobFile = new BmobFile(file);
+        user.setIcon(bmobFile);
     }
 
     private void showLoadingUI() {

@@ -32,12 +32,14 @@ import com.lljjcoder.style.citypickerview.CityPickerView;
 
 import org.me.hichat.R;
 import org.me.hichat.base.BaseActivity;
+import org.me.hichat.model.bean.User;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Calendar;
 
 import butterknife.ButterKnife;
+import cn.bmob.v3.datatype.BmobFile;
 
 public class PersonalInfoActivity extends BaseActivity implements View.OnClickListener {
 
@@ -65,6 +67,7 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
     private static String[] PERMISSIONS_STORAGE = {
             "android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE"};
+    private User user;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,8 +115,9 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
         rbMale.setOnClickListener(this);
         rbFemale.setOnClickListener(this);
 
-        String nickName = getIntent().getStringExtra("nickName");
-        tvNickname.setText(nickName);
+        // 获取 nickName
+        user = (User) getIntent().getSerializableExtra("user");
+        tvNickname.setText(user.getNickName());
     }
 
     @Override
@@ -153,11 +157,27 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        startActivity(new Intent(getApplicationContext(), UserPasswordActivity.class));
+                        savePersonalInfo();
+                        Intent intent = new Intent(getApplicationContext(), UserPasswordActivity.class);
+                        intent.putExtra("user", user);
+                        startActivity(intent);
                     }
                 })
                 .setNegativeButton("取消", null)
                 .show();
+    }
+
+    /**
+     * 保存个人信息到 user
+     */
+    private void savePersonalInfo() {
+        user.setDate(tvBirthday.getText().toString());
+        user.setAddress(tvHome.getText().toString());
+        user.setSex(rbMale.isChecked() ? 0 : 1);
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/hichat_pic/head.jpg";
+        File file = new File(file_path);
+        BmobFile bmobFile = new BmobFile(file);
+        user.setIcon(bmobFile);
     }
 
     /**

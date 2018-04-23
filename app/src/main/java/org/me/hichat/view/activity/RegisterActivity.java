@@ -14,6 +14,7 @@ import android.widget.FrameLayout;
 
 import org.me.hichat.R;
 import org.me.hichat.base.BaseActivity;
+import org.me.hichat.model.bean.User;
 import org.me.hichat.wrap.SimpleTextWatcher;
 
 import butterknife.ButterKnife;
@@ -67,7 +68,9 @@ public class RegisterActivity extends BaseActivity implements View.OnClickListen
     private void enterPersonalInfoActivity() {
         Intent intent = new Intent(this, PersonalInfoActivity.class);
         String nickName = etNickName.getText().toString().trim();
-        intent.putExtra("nickName", nickName);
+        User user = new User();
+        user.setNickName(nickName);
+        intent.putExtra("user", user);
         startActivity(intent);
     }
 
