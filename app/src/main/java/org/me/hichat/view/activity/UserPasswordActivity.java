@@ -1,6 +1,9 @@
 package org.me.hichat.view.activity;
 
+import android.content.Intent;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.support.design.widget.TextInputEditText;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -11,10 +14,13 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.me.hichat.R;
 import org.me.hichat.base.BaseActivity;
 import org.me.hichat.model.bean.User;
+import org.me.hichat.presenter.RegisterPresenter;
+import org.me.hichat.presenter.RegisterPresenterImpl;
 import org.me.hichat.utils.MyToast;
 import org.me.hichat.utils.ValidateUtils;
 import org.me.hichat.wrap.SimpleTextWatcher;
@@ -24,7 +30,14 @@ import java.io.File;
 import butterknife.ButterKnife;
 import cn.bmob.v3.datatype.BmobFile;
 
-public class UserPasswordActivity extends BaseActivity {
+public class UserPasswordActivity extends BaseActivity implements UserPasswordActivityView{
+
+    private static final int SUCCESS_UPLOAD_HEAD_IMAGE = 100;
+    private static final int FAILED_UPLOAD_INFO = 101;
+    private static final int SUCCESS_UPLOAD_INFO = 102;
+    private static final int SUCCESS_CREATE_EMACCOUNT = 103;
+    private static final int SUCCESS_LOGIN_EMSERVER = 104;
+    private static final int ERROR_LOGIN_EMSERVER = 105;
 
     TextInputEditText etPwd;
     TextInputEditText etConfirmPwd;
@@ -32,6 +45,24 @@ public class UserPasswordActivity extends BaseActivity {
     TextInputEditText etUsername;
     private View rl_loading;
     private TextView tv_info;
+    private RegisterPresenter presenter;
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case SUCCESS_UPLOAD_HEAD_IMAGE:
+                case SUCCESS_UPLOAD_INFO:
+                    tv_info.setText((String)msg.obj);
+                    break;
+                case FAILED_UPLOAD_INFO:
+                    // 退出loading界面
+                    rl_loading.setVisibility(View.GONE);
+                    Toast.makeText(UserPasswordActivity.this, (String)msg.obj, Toast.LENGTH_SHORT).show();
+                    break;
+            }
+        }
+    };
 
 
     @Override
@@ -81,6 +112,8 @@ public class UserPasswordActivity extends BaseActivity {
             }
         });
 
+        presenter = new RegisterPresenterImpl(this);
+
 	/*
         etConfirmPwd.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -125,6 +158,9 @@ public class UserPasswordActivity extends BaseActivity {
         }
     }
 
+    /**
+     * 注册
+     */
     private void register() {
         //校验用户名、密码是否合法，密码和确认密码是否一致
         boolean is_valid = validateInfo();
@@ -132,31 +168,16 @@ public class UserPasswordActivity extends BaseActivity {
             // 把加载布局添加到根布局
             showLoadingUI();
             // 保存用户信息到 Bmob
-            saveUserInfoToUser();
-            // 保存 user 到 Bmob 云数据库
+            User user = saveUserInfoToUser();
+            // 保存用户信息到 Bmob
+            presenter.uploadUserInfo(user);
         }
     }
 
     /**
-     * 保存用户和密码到 user
+     * 检查用户名和密码是否合法
+     * @return true :合法 / false : 不合法
      */
-    private void saveUserInfoToUser() {
-        User user = (User) getIntent().getSerializableExtra("user");
-        user.setUserName(etUsername.getText().toString().trim());
-        user.setPassword(etPwd.getText().toString().trim());
-        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/hichat_pic/head.jpg";
-        File file = new File(file_path);
-        BmobFile bmobFile = new BmobFile(file);
-        user.setIcon(bmobFile);
-    }
-
-    private void showLoadingUI() {
-        View view = getLayoutInflater().inflate(R.layout.loading, getRlRoot(), true);
-        rl_loading = ButterKnife.findById(view, R.id.rl_loading);
-        tv_info = ButterKnife.findById(view, R.id.tv_info);
-        tv_info.setText("正在注册");
-    }
-
     private boolean validateInfo() {
         String username = etUsername.getText().toString().trim();
         String pwd = etPwd.getText().toString().trim();
@@ -182,6 +203,97 @@ public class UserPasswordActivity extends BaseActivity {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 显示正在注册界面
+     */
+    private void showLoadingUI() {
+        View view = getLayoutInflater().inflate(R.layout.loading, getRlRoot(), true);
+        rl_loading = ButterKnife.findById(view, R.id.rl_loading);
+        tv_info = ButterKnife.findById(view, R.id.tv_info);
+        tv_info.setText("正在注册");
+    }
+
+    /**
+     * 保存用户和密码到 user
+     */
+    private User saveUserInfoToUser() {
+        User user = (User) getIntent().getSerializableExtra("user");
+        user.setUserName(etUsername.getText().toString().trim());
+        user.setPassword(etPwd.getText().toString().trim());
+        String file_path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/hichat_pic/head.jpg";
+        File file = new File(file_path);
+        BmobFile bmobFile = new BmobFile(file);
+        user.setIcon(bmobFile);
+        return user;
+    }
+
+    /**
+     * presenter 上传头像回调
+     * @param success boolean
+     */
+    @Override
+    public void uploadHeadImageCallback(boolean success) {
+        if (success) {
+            sendMessage(SUCCESS_UPLOAD_HEAD_IMAGE, "上传头像成功");
+        } else {
+            sendMessage(FAILED_UPLOAD_INFO, "注册失败");
+        }
+    }
+
+    /**
+     * presenter 上传用户信息回调
+     * @param success boolean
+     */
+    @Override
+    public void uploadUserInfoCallback(boolean success) {
+        if (success) {
+            sendMessage(SUCCESS_UPLOAD_INFO, "保存用户信息成功");
+        } else {
+            sendMessage(FAILED_UPLOAD_INFO, "注册失败");
+        }
+    }
+
+    /**
+     * presenter 创建环信账户回调
+     * @param success boolean
+     */
+    @Override
+    public void createEMAccountCallback(boolean success) {
+        if (success) {
+            sendMessage(SUCCESS_CREATE_EMACCOUNT,"创建用户成功");
+        } else {
+            sendMessage(FAILED_UPLOAD_INFO, "注册失败");
+        }
+    }
+
+    /**
+     * presenter 登录环信账户回调
+     * @param success boolean
+     */
+    @Override
+    public void loginEMAccountCallback(boolean success) {
+        if (success) {
+            sendMessage(SUCCESS_LOGIN_EMSERVER,"登录成功");
+        } else {
+            sendMessage(ERROR_LOGIN_EMSERVER,"登录失败");
+        }
+
+        // 进入 MainActivity , 设置 MainActivity 为 SingleTask 启动模式
+        startActivity(new Intent(this, MainActivity.class));
+    }
+
+    /**
+     * 发送消息, 更新界面
+     * @param what 消息标识
+     * @param obj 消息内容
+     */
+    private void sendMessage(int what, String obj) {
+        Message msg = Message.obtain();
+        msg.what = what;
+        msg.obj = obj;
+        handler.sendMessage(msg);
     }
 
     @Override

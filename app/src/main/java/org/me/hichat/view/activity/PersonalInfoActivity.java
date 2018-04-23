@@ -331,7 +331,7 @@ public class PersonalInfoActivity extends BaseActivity implements View.OnClickLi
                 break;
             case PHOTO_REQUEST_CUT:
                 if (imageUri != null) {
-                    Bitmap bitmap = null;
+                    Bitmap bitmap;
                     try {
                         bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
                         if (bitmap != null) {
