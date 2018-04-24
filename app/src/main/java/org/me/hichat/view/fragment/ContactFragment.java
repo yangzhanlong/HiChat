@@ -1,5 +1,8 @@
 package org.me.hichat.view.fragment;
 
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,5 +24,32 @@ public class ContactFragment extends BaseFragment{
     @Override
     public void setDefaultTitle(TextView defaultTitle) {
         defaultTitle.setText("通讯录");
+    }
+
+    @Override
+    public View addLeftHeader(LayoutInflater inflater, ViewGroup viewGroup) {
+        return null;
+    }
+
+    @Override
+    public View addRightHeader(LayoutInflater inflater, ViewGroup viewGroup) {
+        View view = inflater.inflate(R.layout.contacts_fragment_header, viewGroup, true);
+        return view;
+    }
+
+    @Override
+    public View addAfLoginView(LayoutInflater inflater, ViewGroup viewGroup) {
+        return null;
+    }
+
+    @Override
+    public void initAfLoginView(View view) {
+
+    }
+
+    @Override
+    public void showLoginHeader() {
+        super.showLoginHeader();
+        setLoginFormatTitle("好友", 0);
     }
 }

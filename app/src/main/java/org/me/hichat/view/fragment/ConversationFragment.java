@@ -1,5 +1,8 @@
 package org.me.hichat.view.fragment;
 
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -21,5 +24,34 @@ public class ConversationFragment extends BaseFragment {
     @Override
     public void setDefaultTitle(TextView defaultTitle) {
         defaultTitle.setText("HI聊");
+    }
+
+    @Override
+    public View addLeftHeader(LayoutInflater inflater, ViewGroup viewGroup) {
+        return null;
+    }
+
+    @Override
+    public View addRightHeader(LayoutInflater inflater, ViewGroup viewGroup) {
+        return null;
+    }
+
+    @Override
+    public View addAfLoginView(LayoutInflater inflater, ViewGroup viewGroup) {
+        return null;
+    }
+
+    @Override
+    public void initAfLoginView(View view) {
+
+    }
+
+    /**
+     * 设置会话登录后的标题
+     */
+    @Override
+    public void showLoginHeader() {
+        super.showLoginHeader();
+        setLoginFormatTitle("消息", 0);
     }
 }

@@ -3,7 +3,9 @@ package org.me.hichat.presenter;
 import com.hyphenate.chat.EMClient;
 import com.hyphenate.exceptions.HyphenateException;
 
+import org.greenrobot.eventbus.EventBus;
 import org.me.hichat.model.bean.User;
+import org.me.hichat.model.event.MessageEvent;
 import org.me.hichat.utils.MyLogger;
 import org.me.hichat.view.activity.UserPasswordActivity;
 import org.me.hichat.wrap.SimpleEMCallBack;
@@ -83,11 +85,12 @@ public class RegisterPresenterImpl implements RegisterPresenter {
      * @param user user
      */
     @Override
-    public void loginEMAccount(User user) {
+    public void loginEMAccount(final User user) {
         EMClient.getInstance().login(user.getUserName(), user.getPassword(), new SimpleEMCallBack() {//回调
             @Override
             public void onSuccess() {
                 super.onSuccess();
+                EventBus.getDefault().post(new MessageEvent(user, MessageEvent.LOGIN));
                 activity.loginEMAccountCallback(true); // 登录成功
             }
 
